@@ -1520,10 +1520,16 @@ function initMobileClearAll() {
 }
 
 function initMobileTouchPrevention() {
-  const mobileMain = document.getElementById('mobileMain');
-  if (!mobileMain) return;
-  mobileMain.addEventListener('contextmenu', (e) => e.preventDefault());
-  mobileMain.addEventListener('selectstart', (e) => e.preventDefault());
+  const inMobile = (e) => e.target?.closest('#mobileMain');
+  document.addEventListener('contextmenu', (e) => { if (inMobile(e)) { e.preventDefault(); e.stopPropagation(); } }, { capture: true });
+  document.addEventListener('selectstart', (e) => { if (inMobile(e)) e.preventDefault(); }, { capture: true });
+  // 某些浏览器（Samsung Internet 等）selectstart 捕获不够，强制清除选中
+  document.addEventListener('selectionchange', () => {
+    const sel = document.getSelection();
+    if (sel?.rangeCount && sel.getRangeAt(0)?.startContainer?.parentElement?.closest('#mobileMain')) {
+      sel.removeAllRanges();
+    }
+  }, { capture: true });
 }
 
 function initMobileUI() {
