@@ -1519,7 +1519,15 @@ function initMobileClearAll() {
   });
 }
 
+function initMobileTouchPrevention() {
+  const mobileMain = document.getElementById('mobileMain');
+  if (!mobileMain) return;
+  mobileMain.addEventListener('contextmenu', (e) => e.preventDefault());
+  mobileMain.addEventListener('selectstart', (e) => e.preventDefault());
+}
+
 function initMobileUI() {
+  initMobileTouchPrevention();
   initMobileTabs();
   initMobileImport();
   initMobileLayerEvents();
