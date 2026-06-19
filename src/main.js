@@ -268,7 +268,7 @@ function updateMobileLayersList() {
   if (!container) return;
 
   if (imgList.length === 0) {
-    container.innerHTML = '<div class="text-center py-8 text-zinc-500 text-xs">暂无导入图片</div>';
+    container.innerHTML = '<div class="text-center py-8 text-zinc-500 text-xs leading-relaxed">暂无导入图片<br><span class="text-zinc-600">点击顶部「导入」添加截图，支持多次添加</span></div>';
     return;
   }
 
@@ -344,6 +344,12 @@ function updateMobileLayersList() {
 
     container.appendChild(card);
   });
+
+  const importMore = document.createElement('button');
+  importMore.className = 'w-full py-2.5 mt-2 border-2 border-dashed border-zinc-700 hover:border-amber-500/50 text-zinc-400 hover:text-amber-400 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5';
+  importMore.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> 继续导入截图';
+  importMore.onclick = () => document.getElementById('mobileFileInput')?.click();
+  container.appendChild(importMore);
 }
 
 // ========== 拖拽排序 ==========
