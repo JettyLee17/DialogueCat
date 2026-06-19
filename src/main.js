@@ -348,7 +348,7 @@ function updateMobileLayersList() {
   const importMore = document.createElement('button');
   importMore.className = 'w-full py-2.5 mt-2 border-2 border-dashed border-zinc-700 hover:border-amber-500/50 text-zinc-400 hover:text-amber-400 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5';
   importMore.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> 继续导入截图';
-  importMore.onclick = () => pickImages();
+  importMore.onclick = () => document.getElementById('mobileFileInput')?.click();
   container.appendChild(importMore);
 }
 
@@ -560,20 +560,6 @@ fileInput.addEventListener('change', (e) => {
   handleFiles(e.target.files);
   fileInput.value = ''; // 重置以允许重复选择同一文件
 });
-
-async function pickImages() {
-  if ('showOpenFilePicker' in window) {
-    try {
-      const handles = await window.showOpenFilePicker({
-        multiple: true,
-        types: [{ description: 'Images', accept: { 'image/*': ['.png','.jpg','.jpeg','.webp','.gif','.avif','.bmp'] } }]
-      });
-      handleFiles(await Promise.all(handles.map(h => h.getFile())));
-      return;
-    } catch (e) { if (e.name === 'AbortError') return; }
-  }
-  document.getElementById('mobileFileInput')?.click();
-}
 
 async function handleFiles(files) {
   const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
@@ -1097,7 +1083,7 @@ function initMobileImport() {
   const fileInput = document.getElementById('mobileFileInput');
   if (!importBtn || !fileInput) return;
 
-  importBtn.addEventListener('click', () => pickImages());
+  importBtn.addEventListener('click', () => fileInput.click());
 
   fileInput.addEventListener('change', (e) => {
     handleFiles(e.target.files);
