@@ -268,7 +268,7 @@ function updateMobileLayersList() {
   if (!container) return;
 
   if (imgList.length === 0) {
-    container.innerHTML = '<div class="text-center py-8 text-zinc-500 text-xs leading-relaxed">暂无导入图片<br><span class="text-zinc-600">点击顶部「导入」或下方按钮添加截图</span></div>';
+    container.innerHTML = '<div class="text-center py-8 text-zinc-500 text-xs leading-relaxed">暂无导入图片<br><span class="text-zinc-600">点击顶部「导入」添加截图，支持多次添加</span></div>';
     return;
   }
 
@@ -345,19 +345,11 @@ function updateMobileLayersList() {
     container.appendChild(card);
   });
 
-  const row = document.createElement('div');
-  row.className = 'flex gap-2 mt-2';
   const importMore = document.createElement('button');
-  importMore.className = 'flex-1 py-2.5 border-2 border-dashed border-zinc-700 hover:border-amber-500/50 text-zinc-400 hover:text-amber-400 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5';
-  importMore.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> 选图导入';
+  importMore.className = 'w-full py-2.5 mt-2 border-2 border-dashed border-zinc-700 hover:border-amber-500/50 text-zinc-400 hover:text-amber-400 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5';
+  importMore.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> 继续导入截图';
   importMore.onclick = () => pickImages();
-  row.appendChild(importMore);
-  const dirBtn = document.createElement('button');
-  dirBtn.className = 'flex-1 py-2.5 border-2 border-dashed border-zinc-700 hover:border-sky-500/50 text-zinc-400 hover:text-sky-400 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5';
-  dirBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg> 文件夹导入';
-  dirBtn.onclick = () => pickFromDirectory();
-  row.appendChild(dirBtn);
-  container.appendChild(row);
+  container.appendChild(importMore);
 }
 
 // ========== 拖拽排序 ==========
@@ -569,22 +561,18 @@ fileInput.addEventListener('change', (e) => {
   fileInput.value = ''; // 重置以允许重复选择同一文件
 });
 
-function pickImages() {
-  const input = document.getElementById('mobileFileInput');
-  if (!input) return;
-
+async function pickImages() {
   if ('showOpenFilePicker' in window) {
-    window.showOpenFilePicker({
-      multiple: true,
-      types: [{ description: 'Images', accept: { 'image/*': ['.png','.jpg','.jpeg','.webp','.gif','.avif','.bmp'] } }]
-    }).then(async (handles) => {
+    try {
+      const handles = await window.showOpenFilePicker({
+        multiple: true,
+        types: [{ description: 'Images', accept: { 'image/*': ['.png','.jpg','.jpeg','.webp','.gif','.avif','.bmp'] } }]
+      });
       handleFiles(await Promise.all(handles.map(h => h.getFile())));
-    }).catch(() => input.click());
-    return;
+      return;
+    } catch (e) { if (e.name === 'AbortError') return; }
   }
-
-  input.value = '';
-  input.click();
+  document.getElementById('mobileFileInput')?.click();
 }
 
 async function handleFiles(files) {
@@ -1107,7 +1095,6 @@ function setActiveTab(btn, tab, tabs, panelMap) {
 function initMobileImport() {
   const importBtn = document.getElementById('mobileImportBtn');
   const fileInput = document.getElementById('mobileFileInput');
-  const dirInput = document.getElementById('mobileDirInput');
   if (!importBtn || !fileInput) return;
 
   importBtn.addEventListener('click', () => pickImages());
@@ -1116,17 +1103,6 @@ function initMobileImport() {
     handleFiles(e.target.files);
     fileInput.value = '';
   });
-
-  if (dirInput) {
-    dirInput.addEventListener('change', (e) => {
-      handleFiles(e.target.files);
-      dirInput.value = '';
-    });
-  }
-}
-
-function pickFromDirectory() {
-  document.getElementById('mobileDirInput')?.click();
 }
 
 function initMobileLayerEvents() {
