@@ -479,10 +479,15 @@ document.getElementById('layersContainer').addEventListener('input', (e) => {
 
 // ========== 图层操作函数 ==========
 
+function refreshLayerUI() {
+  updateLayersList();
+  updateMobileLayersList();
+}
+
 function toggleCustomCrop(index, isChecked) {
   saveHistory();
   imgList[index].customCrop = isChecked;
-  updateLayersList();
+  refreshLayerUI();
   renderCollage();
 }
 
@@ -493,14 +498,14 @@ function moveLayer(index, direction) {
   const temp = imgList[index];
   imgList[index] = imgList[targetIndex];
   imgList[targetIndex] = temp;
-  updateLayersList();
+  refreshLayerUI();
   renderCollage();
 }
 
 function deleteLayer(index) {
   saveHistory();
   imgList.splice(index, 1);
-  updateLayersList();
+  refreshLayerUI();
   renderCollage();
   showToast('图层已删除', 'success');
 }
@@ -508,7 +513,7 @@ function deleteLayer(index) {
 function setLayerMode(index, mode) {
   saveHistory();
   imgList[index].mode = mode;
-  updateLayersList();
+  refreshLayerUI();
   renderCollage();
 }
 
@@ -602,7 +607,7 @@ async function handleFiles(files) {
       });
       saveHistory();
       imgList = [...imgList, ...validImages];
-      updateLayersList();
+      refreshLayerUI();
       renderCollage();
       showToast(`成功导入 ${validImages.length} 张图片`, 'success');
     } else {
@@ -1254,7 +1259,7 @@ function initMobileLayerDrag() {
           saveHistory();
           const [moved] = imgList.splice(srcIdx, 1);
           imgList.splice(targetIdx, 0, moved);
-          updateLayersList();
+          refreshLayerUI();
           renderCollage();
           showToast('图层顺序已更新', 'success');
         }
@@ -1508,7 +1513,7 @@ function initMobileClearAll() {
     saveHistory();
     imgList = [];
     copiedCrop = null;
-    updateLayersList();
+    refreshLayerUI();
     renderCollage();
     showToast('已清空所有图层', 'success');
   });
