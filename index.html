@@ -16,7 +16,8 @@
             border-color: rgba(245, 158, 11, 0.6) !important;
             background-color: rgba(245, 158, 11, 0.05) !important;
         }
-        #mobileLayersContainer [data-layer-index] {
+        /* 移动端禁用长按选中/弹出菜单 */
+        #mobileMain, #mobileMain * {
             -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
