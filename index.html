@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="h-full bg-zinc-950 text-zinc-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台词喵 - DialogueCat</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+        }
+        /* 拖拽排序高亮 */
+        .layer-drag-over {
+            border-color: rgba(245, 158, 11, 0.6) !important;
+            background-color: rgba(245, 158, 11, 0.05) !important;
+        }
+        .layer-dragging {
+            opacity: 0.4;
+            transform: scale(0.98);
+        }
+        /* Loading 遮罩 */
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            z-index: 20;
+            border-radius: inherit;
+        }
+        .loading-overlay:not(.hidden) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(245, 158, 11, 0.2);
+            border-top-color: #f59e0b;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        /* Toast 通知 */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            pointer-events: none;
+        }
+        .toast {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            pointer-events: auto;
+            animation: toastIn 0.3s ease-out;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        .toast-success {
+            background: rgba(16, 185, 129, 0.9);
+            color: white;
+        }
+        .toast-error {
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+        }
+        .toast-info {
+            background: rgba(59, 130, 246, 0.9);
+            color: white;
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden">
+
+    <!-- Toast 通知容器 -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- 顶部导航栏 -->
+    <header class="bg-zinc-900 border-b border-zinc-800 px-6 py-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 bg-amber-500 rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg tracking-wide text-zinc-100 flex items-center gap-2">
+                    台词喵 <span class="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded font-mono">DialogueCat</span>
+                </h1>
+                <p class="text-xs text-zinc-400">优先统一全局剪裁设置，支持独立图层特殊微调，像素级高保真合成</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <span class="text-[10px] text-zinc-500 hidden md:inline">Ctrl+Z 撤销 · Ctrl+Shift+Z 重做 · Del 删除图层</span>
+            <div class="flex items-center space-x-2">
+                <select id="exportWidth" class="bg-zinc-800 border border-zinc-700 text-zinc-300 text-[11px] rounded-lg px-2 py-2 focus:outline-none focus:border-amber-500/50 cursor-pointer">
+                    <option value="original">原图宽度</option>
+                    <option value="1920">1920px</option>
+                    <option value="1080">1080px</option>
+                    <option value="750">750px</option>
+                </select>
+                <select id="exportFormat" class="bg-zinc-800 border border-zinc-700 text-zinc-300 text-[11px] rounded-lg px-2 py-2 focus:outline-none focus:border-amber-500/50 cursor-pointer">
+                    <option value="png">PNG 无损</option>
+                    <option value="jpeg">JPEG</option>
+                    <option value="webp">WebP</option>
+                </select>
+                <select id="exportQuality" class="bg-zinc-800 border border-zinc-700 text-zinc-300 text-[11px] rounded-lg px-2 py-2 focus:outline-none focus:border-amber-500/50 cursor-pointer hidden">
+                    <option value="1">质量 100%</option>
+                    <option value="0.92" selected>质量 92%</option>
+                    <option value="0.85">质量 85%</option>
+                    <option value="0.75">质量 75%</option>
+                    <option value="0.6">质量 60%</option>
+                </select>
+                <button id="exportBtn" class="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold rounded-lg shadow-lg shadow-amber-500/10 transition flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    导出高清拼图
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主工作区 -->
+    <main class="flex-1 flex overflow-hidden">
+
+        <!-- 左侧控制面板 -->
+        <section class="w-96 border-r border-zinc-800 bg-zinc-900/60 overflow-y-auto flex flex-col shrink-0">
+            <!-- 模块一：图片上传与图层管理器 -->
+            <div class="p-5 border-b border-zinc-800">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">1. 导入截图</h3>
+                    <button id="clearAllBtn" class="text-xs text-red-400 hover:text-red-300 transition">清空列表</button>
+                </div>
+
+                <!-- 拖拽上传区域 -->
+                <div id="dropzone" class="border-2 border-dashed border-zinc-700 hover:border-amber-500/50 bg-zinc-950/40 rounded-xl p-6 text-center cursor-pointer transition group relative">
+                    <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
+                    <!-- 上传 loading 遮罩 -->
+                    <div id="uploadLoading" class="loading-overlay hidden">
+                        <div class="flex flex-col items-center gap-2">
+                            <div class="loading-spinner"></div>
+                            <span class="text-xs text-amber-400">正在读取图片...</span>
+                        </div>
+                    </div>
+                    <svg class="w-8 h-8 mx-auto text-zinc-500 group-hover:text-amber-400 transition mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <p class="text-xs font-medium text-zinc-300">点击或拖拽连贯截图到此区域</p>
+                    <p class="text-[10px] text-zinc-500 mt-1">自动识别第一张为完整画面，后续为台词切片</p>
+                </div>
+            </div>
+
+            <!-- 图层项动态挂载区 -->
+            <div id="layersContainer" class="flex-1 overflow-y-auto p-4 space-y-3 bg-zinc-950/20">
+                <!-- 动态渲染的图片图层会插入到这里 -->
+            </div>
+
+            <!-- 模块二：拼贴全局属性设置 -->
+            <div class="p-5 border-t border-zinc-800 bg-zinc-900/90">
+                <div class="mb-2">
+                    <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">2. 间距与样式全局对齐</h3>
+
+                    <div class="space-y-4 text-xs">
+                        <!-- 全局 Y 轴偏置（底部间距） -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-zinc-400 font-medium">台词底部间距 (<span id="globalYPercentVal" class="font-mono text-amber-400">0</span>%)</span>
+                            </div>
+                            <input type="range" id="globalYPercentSlider" min="0" max="100" value="0" class="w-full accent-amber-500 bg-zinc-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                        </div>
+
+                        <!-- 全局切片高度 -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-zinc-400 font-medium">统一字幕切片高度 (<span id="globalHPercentVal" class="font-mono text-amber-400">12</span>%)</span>
+                            </div>
+                            <input type="range" id="globalHPercentSlider" min="3" max="40" value="12" class="w-full accent-amber-500 bg-zinc-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                        </div>
+
+                        <!-- 缝隙大小 -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-zinc-400">分割缝隙厚度 (<span id="gapSizeVal" class="font-mono text-amber-400">0</span>px)</span>
+                            </div>
+                            <input type="range" id="gapSizeSlider" min="0" max="60" value="0" class="w-full accent-amber-500 bg-zinc-800 h-1.5 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 右侧画布及实时预览区 -->
+        <section class="flex-1 bg-zinc-950 p-6 flex flex-col justify-between overflow-hidden relative">
+
+            <!-- 工作台状态提示 -->
+            <div class="absolute top-4 left-6 right-6 flex items-center justify-between text-xs pointer-events-none z-10">
+                <span class="text-zinc-500 flex items-center gap-1.5 bg-zinc-900/80 px-2.5 py-1 rounded-full border border-zinc-800">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    实时渲染预览
+                </span>
+                <div class="flex items-center gap-2">
+                    <span class="text-zinc-500 bg-zinc-900/80 px-2.5 py-1 rounded-full border border-zinc-800">
+                        输出拼图尺寸: <span id="previewResolution" class="text-zinc-300 font-mono">0x0</span>
+                    </span>
+                    <button id="zoomOutBtn" class="text-zinc-500 bg-zinc-900/80 px-2 py-1 rounded-full border border-zinc-800 hover:text-zinc-300 hover:border-zinc-600 transition pointer-events-auto" title="缩小预览">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"/></svg>
+                    </button>
+                    <button id="fitWidthBtn" class="text-zinc-500 bg-zinc-900/80 px-2 py-1 rounded-full border border-zinc-800 hover:text-zinc-300 hover:border-zinc-600 transition pointer-events-auto" title="自适应屏幕宽度">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                    </button>
+                    <button id="zoomResetBtn" class="text-zinc-500 bg-zinc-900/80 px-2 py-1 rounded-full border border-zinc-800 hover:text-zinc-300 hover:border-zinc-600 transition pointer-events-auto" title="重置缩放">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 4v6h6M23 20v-6h-6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                    </button>
+                    <button id="zoomInBtn" class="text-zinc-500 bg-zinc-900/80 px-2 py-1 rounded-full border border-zinc-800 hover:text-zinc-300 hover:border-zinc-600 transition pointer-events-auto" title="放大预览">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 主预览面板滚动区 -->
+            <div class="flex-1 overflow-y-auto flex items-start justify-center py-10 px-4">
+                <div id="previewContainerWrapper" class="relative inline-block bg-zinc-900/30 p-2 rounded-xl border border-zinc-800/50 shadow-2xl transition-all duration-300">
+
+                    <!-- HTML 比例渲染预览区 -->
+                    <div id="htmlPreview" class="bg-black overflow-hidden shadow-2xl transition-all select-none" style="width: 600px;">
+                        <!-- 动态生成的拼贴图层 HTML -->
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 底部控制与提示栏 -->
+            <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 text-xs shrink-0">
+                <div class="text-zinc-400 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span><strong>使用小贴士：</strong>调节左下角的全局滑块可一次性对齐所有字幕切片。如个别图片偏高或偏矮，勾选其右侧"独立裁剪"单独微调。支持拖拽图层卡片排序。</span>
+                </div>
+                
+            </div>
+
+        </section>
+    </main>
+
+    <!-- 下载模态框 -->
+    <div id="exportModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl p-6 shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center space-x-2">
+                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <h3 class="text-base font-bold text-zinc-100">高保真无损大图已生成</h3>
+                </div>
+                <button id="closeModalBtn" class="p-1 text-zinc-400 hover:text-zinc-200 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <p class="text-xs text-zinc-400 mb-4">预览下方的高清合成图像，您可以直接右键另存为，或点击下方按钮保存到本地。</p>
+
+            <!-- 导出信息 -->
+            <div id="exportSizeInfo" class="text-[11px] text-zinc-500 bg-zinc-950 px-3 py-1.5 rounded-lg border border-zinc-800 mb-3 font-mono"></div>
+
+            <!-- 渲染预览容器 -->
+            <div class="flex-1 overflow-auto bg-zinc-950 rounded-xl border border-zinc-800 p-4 flex items-center justify-center">
+                <img id="finalRenderedImage" src="" alt="台词拼贴高清图片" class="max-h-[50vh] max-w-full rounded shadow-lg object-contain">
+            </div>
+
+            <div class="mt-5 flex items-center justify-between gap-4">
+                <span class="text-[11px] text-zinc-500">提示：若直接保存未响应，请右键或在手机上长按图片进行另存。</span>
+                <div class="flex space-x-2">
+                    <button id="modalCloseBtn" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium rounded-lg transition">关闭</button>
+                    <a id="downloadLink" href="#" download="台词拼贴_原图画质.png" class="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold rounded-lg shadow-lg shadow-amber-500/10 transition flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8"/></svg>
+                        保存图片到本地
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
