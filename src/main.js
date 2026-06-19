@@ -268,7 +268,7 @@ function updateMobileLayersList() {
   if (!container) return;
 
   if (imgList.length === 0) {
-    container.innerHTML = '<div class="text-center py-8 text-zinc-500 text-xs leading-relaxed">暂无导入图片<br><span class="text-zinc-600">点击顶部「导入」或下方「文件夹导入」添加截图</span></div>';
+    container.innerHTML = '<div class="text-center py-8 text-zinc-500 text-xs leading-relaxed">暂无导入图片<br><span class="text-zinc-600">点击顶部「导入」或下方按钮添加截图</span></div>';
     return;
   }
 
@@ -576,11 +576,10 @@ function pickImages() {
   if ('showOpenFilePicker' in window) {
     window.showOpenFilePicker({
       multiple: true,
-      startIn: 'pictures',
       types: [{ description: 'Images', accept: { 'image/*': ['.png','.jpg','.jpeg','.webp','.gif','.avif','.bmp'] } }]
     }).then(async (handles) => {
       handleFiles(await Promise.all(handles.map(h => h.getFile())));
-    }).catch(e => { if (e.name !== 'AbortError') input.click(); });
+    }).catch(() => input.click());
     return;
   }
 
